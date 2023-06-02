@@ -150,7 +150,7 @@ public class SubtitleViewModel extends ViewModel {
                                     one.setIsZip(false);
                                     data.add(one);
                                 }
-                           }
+                            }
                             setSearchListData(data, true, false);
                         } else {//有的字幕 不一定是压缩包
                             Element item = doc.selectFirst(".download a#btn_download");
