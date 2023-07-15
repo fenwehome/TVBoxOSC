@@ -147,13 +147,7 @@ public class UserFragment extends BaseLazyFragment implements View.OnClickListen
                     if(Hawk.get(HawkConfig.HOME_REC, 0)==1 && Hawk.get(HawkConfig.FAST_SEARCH_MODE, false)){
                         bundle.putString("title", vod.name);
                         jumpActivity(FastSearchActivity.class, bundle);
-                    }else if (vod.id.startsWith("msearch:"))
-                    {
-                        bundle.putString("title", vod.name);
-                        jumpActivity(FastSearchActivity.class, bundle);
-                    }
-                    else
-                    {
+                    }else {
                         jumpActivity(DetailActivity.class, bundle);
                     }
                 } else {
@@ -283,7 +277,8 @@ public class UserFragment extends BaseLazyFragment implements View.OnClickListen
                 Movie.Video vod = new Movie.Video();
                 vod.name = obj.get("title").getAsString();
                 vod.note = obj.get("rate").getAsString();
-                vod.pic = obj.get("cover").getAsString();
+                if(!vod.note.isEmpty())vod.note+=" 分";
+                vod.pic = obj.get("cover").getAsString()+"@User-Agent=com.douban.frodo";
                 result.add(vod);
             }
         } catch (Throwable th) {
