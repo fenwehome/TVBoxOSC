@@ -183,9 +183,13 @@ public class SourceViewModel extends ViewModel {
                         }
                     });
         }else if (type == 4) {
-            OkGo.<String>get(sourceBean.getApi())
+            String extend=sourceBean.getExt();
+            String apiUrl = Hawk.get(HawkConfig.API_URL, "");
+            extend=getFixUrl(apiUrl,extend);
+			OkGo.<String>get(sourceBean.getApi())
                 .tag(sourceBean.getKey() + "_sort")
                 .params("filter", "true")
+                .params("extend", extend)
                 .execute(new AbsCallback<String>() {
                     @Override
                     public String convertResponse(okhttp3.Response response) throws Throwable {
@@ -686,9 +690,13 @@ public class SourceViewModel extends ViewModel {
                 playResult.postValue(null);
             }
         } else if (type == 4) {
-            OkGo.<String>get(sourceBean.getApi())
+            String extend=sourceBean.getExt();
+            String apiUrl = Hawk.get(HawkConfig.API_URL, "");
+            extend=getFixUrl(apiUrl,extend);
+			OkGo.<String>get(sourceBean.getApi())
                 .params("play", url)
                 .params("flag" ,playFlag)
+                .params("extend", extend)
                 .tag("play")
                 .execute(new AbsCallback<String>() {
                     @Override
@@ -729,7 +737,17 @@ public class SourceViewModel extends ViewModel {
         }
     }
 
-    private MovieSort.SortFilter getSortFilter(JsonObject obj) {
+    private String getFixUrl(String url,String content){
+        if (content.contains("\"./")) {
+            if(!url.startsWith("http") && !url.startsWith("clan://")){
+                url = "http://" + url;
+            }
+            content = content.replace("./", url.substring(0,url.lastIndexOf("/") + 1));
+        }
+        return content;
+    }
+
+	private MovieSort.SortFilter getSortFilter(JsonObject obj) {
         String key = obj.get("key").getAsString();
         String name = obj.get("name").getAsString();
         JsonArray kv = obj.getAsJsonArray("value");
