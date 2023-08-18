@@ -92,7 +92,7 @@ import androidx.recyclerview.widget.RecyclerView;
  * @date :2020/12/22
  * @description:
  */
- 
+
 public class DetailActivity extends BaseActivity {
     private LinearLayout llLayout;
     private FragmentContainerView llPlayerFragmentContainer;
@@ -126,6 +126,7 @@ public class DetailActivity extends BaseActivity {
     private SeriesAdapter seriesAdapter;
     public String vodId;
     public String sourceKey;
+    public String firstsourceKey;
     boolean seriesSelect = false;
     private View seriesFlagFocus = null;
     private boolean isReverse;
@@ -244,7 +245,7 @@ public class DetailActivity extends BaseActivity {
                 }
             }
         });
-        
+
         tvQuickSearch.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -354,8 +355,8 @@ public class DetailActivity extends BaseActivity {
 
             @Override
             public void onItemClick(TvRecyclerView parent, View itemView, int position) {
-                refresh(itemView, position); 
-//                if(isReverse)vodInfo.reverse();       
+                refresh(itemView, position);
+//                if(isReverse)vodInfo.reverse();
             }
         });
         seriesAdapter.setOnItemClickListener(new BaseQuickAdapter.OnItemClickListener() {
@@ -377,15 +378,15 @@ public class DetailActivity extends BaseActivity {
                         reload = true;
                     }
                     //解决当前集不刷新的BUG
-                   if (!preFlag.isEmpty() && !vodInfo.playFlag.equals(preFlag)) {
+                    if (!preFlag.isEmpty() && !vodInfo.playFlag.equals(preFlag)) {
                         reload = true;
                     }
 
                     seriesAdapter.getData().get(vodInfo.playIndex).selected = true;
                     seriesAdapter.notifyItemChanged(vodInfo.playIndex);
                     //选集全屏 想选集不全屏的注释下面一行
-                   if (showPreview && !fullWindows) toggleFullPreview();
-                   if (!showPreview || reload) {
+                    if (showPreview && !fullWindows) toggleFullPreview();
+                    if (!showPreview || reload) {
                         jumpToPlay();
                         firstReverse=false;
                     }
@@ -459,7 +460,8 @@ public class DetailActivity extends BaseActivity {
             setTextShow(tvPlayUrl, "播放地址：", vodInfo.seriesMap.get(vodInfo.playFlag).get(vodInfo.playIndex).url);
             Bundle bundle = new Bundle();
             //保存历史
-            insertVod(sourceKey, vodInfo);
+            insertVod(firstsourceKey, vodInfo);
+        //   insertVod(sourceKey, vodInfo);
             bundle.putString("sourceKey", sourceKey);
 //            bundle.putSerializable("VodInfo", vodInfo);
             App.getInstance().setVodInfo(vodInfo);
@@ -554,7 +556,7 @@ public class DetailActivity extends BaseActivity {
             mSeriesGroupView.setVisibility(View.VISIBLE);
             int remainedOptionSize = listSize % GroupCount;
             int optionSize = listSize / GroupCount;
-            
+
             for(int i = 0; i < optionSize; i++) {
                 if(vodInfo.reverseSort)
 //                    seriesGroupOptions.add(String.format("%d - %d", i * GroupCount + GroupCount, i * GroupCount + 1));
@@ -599,17 +601,29 @@ public class DetailActivity extends BaseActivity {
             public void onChanged(AbsXml absXml) {
                 if (absXml != null && absXml.movie != null && absXml.movie.videoList != null && absXml.movie.videoList.size() > 0) {
                     showSuccess();
+                    if(!TextUtils.isEmpty(absXml.msg) && !absXml.msg.equals("数据列表")){
+                        Toast.makeText(DetailActivity.this, absXml.msg, Toast.LENGTH_SHORT).show();
+                        showEmpty();
+                        return;
+                    }
                     mVideo = absXml.movie.videoList.get(0);
+                    mVideo.id = vodId;
+                    if (TextUtils.isEmpty(mVideo.name))mVideo.name = "四个圈影视";
                     vodInfo = new VodInfo();
                     vodInfo.setVideo(mVideo);
                     vodInfo.sourceKey = mVideo.sourceKey;
+                    sourceKey = mVideo.sourceKey;
 
                     tvName.setText(mVideo.name);
-                    setTextShow(tvSite, "来源：", ApiConfig.get().getSource(mVideo.sourceKey).getName());
+                    setTextShow(tvSite, "来源：", ApiConfig.get().getSource(firstsourceKey).getName());
                     setTextShow(tvYear, "年份：", mVideo.year == 0 ? "" : String.valueOf(mVideo.year));
                     setTextShow(tvArea, "地区：", mVideo.area);
                     setTextShow(tvLang, "语言：", mVideo.lang);
-                    setTextShow(tvType, "类型：", mVideo.type);
+                    if (!firstsourceKey.equals(sourceKey)) {
+                    	setTextShow(tvType, "类型：", "[" + ApiConfig.get().getSource(sourceKey).getName() + "] 解析");
+                    } else {
+                    	setTextShow(tvType, "类型：", mVideo.type);
+                    }
                     setTextShow(tvActor, "演员：", mVideo.actor);
                     setTextShow(tvDirector, "导演：", mVideo.director);
                     setTextShow(tvDes, "内容简介：", removeHtmlTag(mVideo.des));
@@ -711,6 +725,7 @@ public class DetailActivity extends BaseActivity {
         if (vid != null) {
             vodId = vid;
             sourceKey = key;
+            firstsourceKey = key;
             showLoading();
             sourceViewModel.getDetail(sourceKey, vodId);
             boolean isVodCollect = RoomDataManger.isVodCollect(sourceKey, vodId);
@@ -737,11 +752,13 @@ public class DetailActivity extends BaseActivity {
                     mGridView.setSelection(index);
                     vodInfo.playIndex = index;
                     //保存历史
-                    insertVod(sourceKey, vodInfo);
+                    insertVod(firstsourceKey, vodInfo);
+                     //   insertVod(sourceKey, vodInfo);
                 } else if (event.obj instanceof JSONObject) {
                     vodInfo.playerCfg = ((JSONObject) event.obj).toString();
                     //保存历史
-                    insertVod(sourceKey, vodInfo);
+                    insertVod(firstsourceKey, vodInfo);
+            //        insertVod(sourceKey, vodInfo);
                 }
 
             }
@@ -766,8 +783,8 @@ public class DetailActivity extends BaseActivity {
 
     private String searchTitle = "";
     private boolean hadQuickStart = false;
-    private List<Movie.Video> quickSearchData = new ArrayList<>();
-    private List<String> quickSearchWord = new ArrayList<>();
+    private final List<Movie.Video> quickSearchData = new ArrayList<>();
+    private final List<String> quickSearchWord = new ArrayList<>();
     private ExecutorService searchExecutorService = null;
 
     private void switchSearchWord(String word) {
@@ -906,7 +923,7 @@ public class DetailActivity extends BaseActivity {
             if (playFragment.onBackPressed())
                 return;
             toggleFullPreview();
-            mGridView.requestFocus();            
+            mGridView.requestFocus();
             List<VodInfo.VodSeries> list = vodInfo.seriesMap.get(vodInfo.playFlag);
             mSeriesGroupView.setVisibility(list.size()>GroupCount ? View.VISIBLE : View.GONE);
             return;
@@ -947,11 +964,11 @@ public class DetailActivity extends BaseActivity {
         fullWindows = !fullWindows;
         llPlayerFragmentContainer.setLayoutParams(fullWindows ? windowsFull : windowsPreview);
         llPlayerFragmentContainerBlock.setVisibility(fullWindows ? View.GONE : View.VISIBLE);
-       mGridView.setVisibility(fullWindows ? View.GONE : View.VISIBLE);
-       mGridViewFlag.setVisibility(fullWindows ? View.GONE : View.VISIBLE);
-       mSeriesGroupView.setVisibility(fullWindows ? View.GONE : View.VISIBLE);
+        mGridView.setVisibility(fullWindows ? View.GONE : View.VISIBLE);
+        mGridViewFlag.setVisibility(fullWindows ? View.GONE : View.VISIBLE);
+        mSeriesGroupView.setVisibility(fullWindows ? View.GONE : View.VISIBLE);
 
-        //全屏下禁用详情页几个按键的焦点 防止上键跑过来 
+        //全屏下禁用详情页几个按键的焦点 防止上键跑过来
         tvPlay.setFocusable(!fullWindows);
         tvSort.setFocusable(!fullWindows);
         tvCollect.setFocusable(!fullWindows);
