@@ -192,7 +192,7 @@ public class HomeActivity extends BaseActivity {
                 }
             }
         });
-        
+
         this.mGridView.setOnInBorderKeyEventListener(new TvRecyclerView.OnInBorderKeyEventListener() {
             public final boolean onInBorderKeyEvent(int direction, View view) {
                 if (direction != View.FOCUS_DOWN) {
@@ -268,7 +268,7 @@ public class HomeActivity extends BaseActivity {
             tvName.setText("四个圈影视    " + home.getName());
             }
         }
-        
+
         if (dataInitOk && jarInitOk) {
             showLoading();
             sourceViewModel.getSort(ApiConfig.get().getHomeSourceBean().getKey());
@@ -436,27 +436,37 @@ public class HomeActivity extends BaseActivity {
 
     @Override
     public void onBackPressed() {
-        int i;
-        if (this.fragments.size() <= 0 || this.sortFocused >= this.fragments.size() || (i = this.sortFocused) < 0) {
-            exit();
-            return;
-        }
-        BaseLazyFragment baseLazyFragment = this.fragments.get(i);
-        if (baseLazyFragment instanceof GridFragment) {
-            View view = this.sortFocusView;
-            GridFragment grid = (GridFragment) baseLazyFragment;
-            if (grid.restoreView()) {
+
+        // takagen99: Add check for VOD Delete Mode
+        if (HawkConfig.hotVodDelete) {
+            HawkConfig.hotVodDelete = false;
+            UserFragment.homeHotVodAdapter.notifyDataSetChanged();
+        } else {
+            int i;
+            if (this.fragments.size() <= 0 || this.sortFocused >= this.fragments.size() || (i = this.sortFocused) < 0) {
+                exit();
                 return;
-            }// 还原上次保存的UI内容
-            if (view != null && !view.isFocused()) {
-                this.sortFocusView.requestFocus();
-            } else if (this.sortFocused != 0) {
+            }
+            BaseLazyFragment baseLazyFragment = this.fragments.get(i);
+            if (baseLazyFragment instanceof GridFragment) {
+                View view = this.sortFocusView;
+                GridFragment grid = (GridFragment) baseLazyFragment;
+                if (grid.restoreView()) {
+                    return;
+                }// 还原上次保存的UI内容
+                if (view != null && !view.isFocused()) {
+                    this.sortFocusView.requestFocus();
+                } else if (this.sortFocused != 0) {
+                    this.mGridView.setSelection(0);
+                } else {
+                    exit();
+                }
+            } else if (baseLazyFragment instanceof UserFragment && UserFragment.tvHotList1.canScrollVertically(-1)) {
+                UserFragment.tvHotList1.scrollToPosition(0);
                 this.mGridView.setSelection(0);
             } else {
                 exit();
             }
-        } else {
-            exit();
         }
     }
 
@@ -466,11 +476,11 @@ public class HomeActivity extends BaseActivity {
             EventBus.getDefault().unregister(this);
             AppManager.getInstance().appExit(0);
             ControlManager.get().stopServer();
-            finish(); 
+            finish();
             super.onBackPressed();
         } else {
             mExitTime = System.currentTimeMillis();
-            Toast.makeText(mContext, "再按一次返回键退出应用", Toast.LENGTH_SHORT).show();
+            Toast.makeText(mContext, "再按一次返回键退出应用", Toast.LENGTH_SHORT).show();            
         }
     }
 

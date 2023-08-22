@@ -265,7 +265,7 @@ public class Thunder {
         }
         if (url.startsWith("tvbox-oth:")) {
             stop(false);
-			int idx = Integer.parseInt(url.substring(10));
+            int idx = Integer.parseInt(url.substring(10));
             task_url=ed2kList.get(idx);
             name = XLTaskHelper.instance().getFileName(task_url);
             localPath = (new File(cacheRoot+File.separator+"temp",FileUtils.getFileNameWithoutExt(name)))+"/";
