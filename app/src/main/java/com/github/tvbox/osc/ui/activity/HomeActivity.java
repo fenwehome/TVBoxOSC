@@ -194,19 +194,21 @@ public class HomeActivity extends BaseActivity {
         });
 
         this.mGridView.setOnInBorderKeyEventListener(new TvRecyclerView.OnInBorderKeyEventListener() {
-            public final boolean onInBorderKeyEvent(int direction, View view) {
+            public boolean onInBorderKeyEvent(int direction, View view) {
+                if (direction == View.FOCUS_UP) {
+                    BaseLazyFragment baseLazyFragment = fragments.get(sortFocused);
+                    if ((baseLazyFragment instanceof GridFragment)) {
+                        ((GridFragment) baseLazyFragment).forceRefresh();
+                    }
+                }
                 if (direction != View.FOCUS_DOWN) {
                     return false;
                 }
-                isDownOrUp = true;
                 BaseLazyFragment baseLazyFragment = fragments.get(sortFocused);
                 if (!(baseLazyFragment instanceof GridFragment)) {
                     return false;
                 }
-                if (!((GridFragment) baseLazyFragment).isLoad()) {
-                    return true;
-                }
-                return false;
+                return !((GridFragment) baseLazyFragment).isLoad();
             }
         });
         tvName.setOnClickListener(new View.OnClickListener() {
@@ -434,7 +436,8 @@ public class HomeActivity extends BaseActivity {
         }
     }
 
-    @Override
+    @SuppressLint("NotifyDataSetChanged")
+	@Override
     public void onBackPressed() {
 
         // takagen99: Add check for VOD Delete Mode
@@ -538,17 +541,24 @@ public class HomeActivity extends BaseActivity {
         }
     };
 
-    @Override
+    private long menuKeyDownTime = 0;
+    private static final long LONG_PRESS_THRESHOLD = 2000; // 设置长按的阈值，单位是毫秒
+	@Override
     public boolean dispatchKeyEvent(KeyEvent event) {
         if (topHide < 0)
             return false;
         int keyCode = event.getKeyCode();
-        if (event.getAction() == KeyEvent.ACTION_DOWN) {
-            if (keyCode == KeyEvent.KEYCODE_MENU) {
-                showSiteSwitch();
+        if (keyCode == KeyEvent.KEYCODE_MENU) {
+            if (event.getAction() == KeyEvent.ACTION_DOWN) {
+                menuKeyDownTime = System.currentTimeMillis();
+            } else if (event.getAction() == KeyEvent.ACTION_UP) {
+                long pressDuration = System.currentTimeMillis() - menuKeyDownTime;
+                if (pressDuration >= LONG_PRESS_THRESHOLD) {
+                    jumpActivity(SettingActivity.class);;
+                }else {
+                    showSiteSwitch();
+                }
             }
-        } else if (event.getAction() == KeyEvent.ACTION_UP) {
-
         }
         return super.dispatchKeyEvent(event);
     }

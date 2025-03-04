@@ -6,7 +6,7 @@ android {
     defaultConfig {
         applicationId 'com.github.tvbox.osc'
         minSdkVersion 18
-        targetSdkVersion 26
+        targetSdkVersion 28
         versionCode 1
         versionName '1.0.0'
         multiDexEnabled true
@@ -58,6 +58,11 @@ android {
     }
 }
 
+repositories {
+    flatDir {
+        dirs 'libs'
+    }
+}
 dependencies {
     api fileTree(dir: "libs", include: ['*.jar', '*.aar'])
 
@@ -105,4 +110,9 @@ dependencies {
     implementation 'com.github.hedzr:android-file-chooser:v1.2.0-final'
     implementation 'commons-io:commons-io:2.11.0'
     implementation 'com.googlecode.juniversalchardet:juniversalchardet:1.0.3'
+	implementation(name:'xwalk_shared_library-23.53.589.4',ext:'aar')
+    //支持http3
+    implementation ('com.google.net.cronet:cronet-okhttp:0.1.0')
+//    implementation 'com.google.android.gms:play-services-cronet:18.0.1'
+    implementation ('org.chromium.net:cronet-embedded:101.4951.41')
 }

@@ -85,10 +85,10 @@ public class PlayerHelper {
                 renderViewFactory = SurfaceRenderViewFactory.create();
                 break;
         }
-        videoView.setPlayerFactory(playerFactory);
-        videoView.setRenderViewFactory(renderViewFactory);
-        videoView.setScreenScaleType(scale);
-    }
+        if(videoView!=null){
+            videoView.setPlayerFactory(playerFactory);
+            videoView.setRenderViewFactory(renderViewFactory);
+            videoView.setScreenScaleType(scale);
 
     public static void updateCfg(VideoView videoView) {
         int playType = Hawk.get(HawkConfig.PLAY_TYPE, 0);

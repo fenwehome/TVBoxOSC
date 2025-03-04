@@ -3,11 +3,11 @@ package com.github.tvbox.osc.viewmodel;
 import android.text.TextUtils;
 
 import android.util.Base64;
+
 import androidx.annotation.NonNull;
 import androidx.lifecycle.MutableLiveData;
 import androidx.lifecycle.ViewModel;
 
-import com.github.catvod.crawler.JsLoader;
 import com.github.catvod.crawler.Spider;
 import com.github.tvbox.osc.api.ApiConfig;
 import com.github.tvbox.osc.base.App;
@@ -38,11 +38,12 @@ import com.orhanobut.hawk.Hawk;
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.xml.DomDriver;
 
-import okhttp3.Call;
 import org.greenrobot.eventbus.EventBus;
 import org.json.JSONObject;
 
+
 import java.io.IOException;
+
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.net.URLEncoder;
@@ -61,6 +62,8 @@ import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
+import okhttp3.Call;
+
 /**
  * @author pj567
  * @date :2020/12/18
@@ -73,32 +76,6 @@ public class SourceViewModel extends ViewModel {
     public MutableLiveData<AbsXml> quickSearchResult;
     public MutableLiveData<AbsXml> detailResult;
     public MutableLiveData<JSONObject> playResult;
-    private ExecutorService searchExecutorService;
-    
-    public void initExecutor() {
-        if (searchExecutorService != null) {
-            searchExecutorService.shutdownNow();
-            searchExecutorService = null;
-            JsLoader.stopAll();
-        }
-        searchExecutorService = Executors.newFixedThreadPool(5);
-    }
-    
-    public void execute(Runnable runnable) {
-        if (searchExecutorService != null) {
-            searchExecutorService.execute(runnable);
-        }
-    }
-    
-    public List<Runnable> shutdownNow() {
-        return searchExecutorService == null ? new ArrayList<>() : searchExecutorService.shutdownNow();
-    }
-
-    public void destroyExecutor() {
-        if (searchExecutorService != null) {
-            searchExecutorService = null;
-        }
-    }
 
     public SourceViewModel() {
         sortResult = new MutableLiveData<>();
@@ -128,7 +105,8 @@ public class SourceViewModel extends ViewModel {
                         @Override
                         public String call() throws Exception {
                             Spider sp = ApiConfig.get().getCSP(sourceBean);
-                            return sp.homeContent(true);
+                            String json=sp.homeContent(true);
+                            return json;
                         }
                     });
                     String sortJson = null;
@@ -219,7 +197,7 @@ public class SourceViewModel extends ViewModel {
                         }
                     });
         }else if (type == 4) {
-        	String extend=sourceBean.getExt();
+            String extend=sourceBean.getExt();
             extend=getFixUrl(extend);
             if(URLEncoder.encode(extend).length()<1000){
                 OkGo.<String>get(sourceBean.getApi())
@@ -235,6 +213,7 @@ public class SourceViewModel extends ViewModel {
                                     throw new IllegalStateException("网络请求错误");
                                 }
                             }
+
                             @Override
                             public void onSuccess(Response<String> response) {
                                 String sortJson  = response.body();
@@ -261,6 +240,7 @@ public class SourceViewModel extends ViewModel {
                                     sortResult.postValue(null);
                                 }
                             }
+
                             @Override
                             public void onError(Response<String> response) {
                                 super.onError(response);
@@ -277,6 +257,7 @@ public class SourceViewModel extends ViewModel {
                         public void onFailure(@NonNull Call call, IOException e) {
                             sortResult.postValue(null);
                         }
+
                         @Override
                         public void onResponse(@NonNull Call call, @NonNull okhttp3.Response response) throws IOException {
                             assert response.body() != null;
@@ -286,24 +267,24 @@ public class SourceViewModel extends ViewModel {
                                 AbsXml absXml = json(null, sortJson, sourceBean.getKey());
                                 if (absXml != null && absXml.movie != null && absXml.movie.videoList != null && absXml.movie.videoList.size() > 0) {
                                     sortXml.videoList = absXml.movie.videoList;
-                                    sortResult.postValue(sortXml);                                
+                                    sortResult.postValue(sortXml);
                                 }
                             } else {
                                 sortResult.postValue(sortXml);
-                            }                        
+                            }
                         }
                     });
                 } catch (Exception ignored) {
                     sortResult.postValue(null);
                 }
-            }  
+            }
         } else {
             sortResult.postValue(null);
         }
     }
     // categoryContent
-    public void getList(MovieSort.SortData sortData, int page, String sourceKey) {
-        SourceBean homeSourceBean = TextUtils.isEmpty(sourceKey) ? ApiConfig.get().getHomeSourceBean(): ApiConfig.get().getSource(sourceKey);
+    public void getList(MovieSort.SortData sortData, int page) {
+        SourceBean homeSourceBean = ApiConfig.get().getHomeSourceBean();
         int type = homeSourceBean.getType();
         if (type == 3) {
             spThreadPool.execute(new Runnable() {
@@ -354,17 +335,17 @@ public class SourceViewModel extends ViewModel {
                         }
                     });
         }else if (type == 4) {
-            String ext="";
+            String ext= "";
             if (sortData.filterSelect != null && sortData.filterSelect.size() > 0) {
                 try {
-                	String selectExt = new JSONObject(sortData.filterSelect).toString();
-                    ext = Base64.encodeToString(selectExt.getBytes("UTF-8"), Base64.DEFAULT |  Base64.NO_WRAP);                    
+                    String selectExt = new JSONObject(sortData.filterSelect).toString();
+                    ext = Base64.encodeToString(selectExt.getBytes("UTF-8"), Base64.DEFAULT |  Base64.NO_WRAP);
                     LOG.i(ext);
                 } catch (UnsupportedEncodingException e) {
                     e.printStackTrace();
                 }
             }else {
-                ext = Base64.encodeToString("{}".getBytes(), Base64.DEFAULT |  Base64.NO_WRAP);    
+                ext = Base64.encodeToString("{}".getBytes(), Base64.DEFAULT |  Base64.NO_WRAP);
             }
             OkGo.<String>get(homeSourceBean.getApi())
                 .tag(homeSourceBean.getApi())
@@ -404,7 +385,7 @@ public class SourceViewModel extends ViewModel {
     interface HomeRecCallback {
         void done(List<Movie.Video> videos);
     }
-    //homeVideoContent
+//    homeVideoContent
     void getHomeRecList(SourceBean sourceBean, ArrayList<String> ids, HomeRecCallback callback) {
         int type = sourceBean.getType();
         if (type == 3) {
@@ -421,7 +402,7 @@ public class SourceViewModel extends ViewModel {
                     });
                     String sortJson = null;
                     try {
-                        sortJson = future.get(15, TimeUnit.SECONDS);
+                        sortJson = future.get(10, TimeUnit.SECONDS);
                     } catch (TimeoutException e) {
                         e.printStackTrace();
                         future.cancel(true);
@@ -489,12 +470,10 @@ public class SourceViewModel extends ViewModel {
         } else {
             callback.done(null);
         }
-    }    
-    
-    // detailContent    
+    }
+    // detailContent
     public void getDetail(String sourceKey, String urlid) {
-
-        if (urlid.startsWith("push://") && ApiConfig.get().getSource("push_agent") != null) {           
+    	if (urlid.startsWith("push://") && ApiConfig.get().getSource("push_agent") != null) {           
             String pushUrl = urlid.substring(7);
             if (pushUrl.startsWith("b64:")) {
                 try {
@@ -508,21 +487,42 @@ public class SourceViewModel extends ViewModel {
             sourceKey = "push_agent";
             urlid = pushUrl;
         }
-        String id = urlid; 	
-
+        String id = urlid;
+    
         SourceBean sourceBean = ApiConfig.get().getSource(sourceKey);
         int type = sourceBean.getType();
         if (type == 3) {
             spThreadPool.execute(new Runnable() {
                 @Override
                 public void run() {
+                    ExecutorService executor = Executors.newSingleThreadExecutor();
+                    Future<String> future = executor.submit(new Callable<String>() {
+                        @Override
+                        public String call() {
+                            Spider sp = ApiConfig.get().getCSP(sourceBean);
+                            List<String> ids = new ArrayList<>();
+                            ids.add(id);
+                            try {
+                                return sp.detailContent(ids);
+                            } catch (Exception e) {
+                                LOG.i("echo--getDetail--error: " + e.getMessage());
+                                return "";
+                            }
+                        }
+                    });
+
+                    String json = null;
                     try {
-                        Spider sp = ApiConfig.get().getCSP(sourceBean);
-                        List<String> ids = new ArrayList<>();                        
-                        ids.add(id);
-                        json(detailResult, sp.detailContent(ids), sourceBean.getKey());
-                    } catch (Throwable th) {
-                        th.printStackTrace();
+                        json = future.get(8, TimeUnit.SECONDS);
+                        LOG.i("echo--getDetail--result:" + json);
+                    } catch (TimeoutException e) {
+                        LOG.i("echo--getDetail--timeout");
+                        future.cancel(true);
+                    } catch (Exception e) {
+                        LOG.i("echo--getDetail--error: " + e.getMessage());
+                    } finally {
+                        json(detailResult, json, sourceBean.getKey());
+                        executor.shutdown();
                     }
                 }
             });
@@ -557,7 +557,7 @@ public class SourceViewModel extends ViewModel {
                         @Override
                         public void onError(Response<String> response) {
                             super.onError(response);
-                            detailResult.postValue(null);
+                            json(detailResult, "", sourceBean.getKey());
                         }
                     });
         } else {
@@ -575,7 +575,7 @@ public class SourceViewModel extends ViewModel {
                 if(!TextUtils.isEmpty(search)){
                     json(searchResult, search, sourceBean.getKey());
                 } else {
-                    json(searchResult, "", sourceBean.getKey());    
+                    json(searchResult, "", sourceBean.getKey());
                 }
             } catch (Throwable th) {
                 th.printStackTrace();
@@ -584,7 +584,7 @@ public class SourceViewModel extends ViewModel {
         } else if (type == 0 || type == 1) {
             OkGo.<String>get(sourceBean.getApi())
                     .params("wd", wd)
-                    .params("ac", "detail")
+                    .params(type == 1 ? "ac" : null, type == 1 ? "detail" : null)
                     .tag("search")
                     .execute(new AbsCallback<String>() {
                         @Override
@@ -662,7 +662,7 @@ public class SourceViewModel extends ViewModel {
         } else if (type == 0 || type == 1) {
             OkGo.<String>get(sourceBean.getApi())
                     .params("wd", wd)
-                    .params("ac", "detail")
+                    .params(type == 1 ? "ac" : null, type == 1 ? "detail" : null)
                     .tag("quick_search")
                     .execute(new AbsCallback<String>() {
                         @Override
@@ -734,20 +734,47 @@ public class SourceViewModel extends ViewModel {
             spThreadPool.execute(new Runnable() {
                 @Override
                 public void run() {
-                    Spider sp = ApiConfig.get().getCSP(sourceBean);
-                    if(TextUtils.isEmpty(url))return;                    
+                    ExecutorService executor = Executors.newSingleThreadExecutor();
+                    Future<String> future = executor.submit(new Callable<String>() {
+                        @Override
+                        public String call() throws Exception {
+                            Spider sp = ApiConfig.get().getCSP(sourceBean);
+                            if (TextUtils.isEmpty(url)) return "";
+                            try {
+                                return sp.playerContent(playFlag, url, ApiConfig.get().getVipParseFlags());
+                            } catch (Exception e) {
+                                LOG.i("echo--getPlay--error: " + e.getMessage());
+                                return "";
+                            }
+                        }
+                    });
+
                     try {
-                    	String json = sp.playerContent(playFlag, url, ApiConfig.get().getVipParseFlags());
-                        JSONObject result = new JSONObject(json);
-                        result.put("key", url);
-                        result.put("proKey", progressKey);
-                        result.put("subtKey", subtitleKey);
-                        if (!result.has("flag"))
-                            result.put("flag", playFlag);
-                        playResult.postValue(result);
-                    } catch (Throwable th) {
-                        th.printStackTrace();
+                        String json = future.get(10, TimeUnit.SECONDS);
+                        LOG.i("echo--getPlay--result:" + json);
+                        // 处理返回的 JSON
+                        if (!TextUtils.isEmpty(json)) {
+                            JSONObject result = new JSONObject(json);
+                            result.put("key", url);
+                            result.put("proKey", progressKey);
+                            result.put("subtKey", subtitleKey);
+                            if (!result.has("flag"))
+                                result.put("flag", playFlag);
+                            playResult.postValue(result);
+                        } else {
+                            playResult.postValue(null);
+                        }
+                    } catch (TimeoutException e) {
+                        // 如果超时了，处理超时逻辑
+                        LOG.i("echo--getPlay--timeout");
+                        future.cancel(true);
                         playResult.postValue(null);
+                    } catch (Exception e) {
+                        // 捕获其他异常
+                        LOG.i("echo--getPlay--error: " + e.getMessage());
+                        playResult.postValue(null);
+                    } finally {
+                        executor.shutdown();
                     }
                 }
             });
@@ -773,7 +800,7 @@ public class SourceViewModel extends ViewModel {
                 playResult.postValue(null);
             }
         } else if (type == 4) {
-        	String extend=sourceBean.getExt();
+            String extend=sourceBean.getExt();
             extend=getFixUrl(extend);
             if(URLEncoder.encode(extend).length()>1000)extend="";
             OkGo.<String>get(sourceBean.getApi())
@@ -819,7 +846,7 @@ public class SourceViewModel extends ViewModel {
             playResult.postValue(null);
         }
     }
-    
+
     private String getFixUrl(String content){
         if (content.startsWith("http://127.0.0.1")) {
             String path = content.replaceAll("^http.+/file/", FileUtils.getRootPath()+"/");
@@ -890,7 +917,6 @@ public class SourceViewModel extends ViewModel {
             xstream.autodetectAnnotations(true);
             xstream.processAnnotations(AbsSortXml.class);
             xstream.ignoreUnknownElements();
-            xstream.allowTypes(new Class[]{AbsSortXml.class});
             AbsSortXml data = (AbsSortXml) xstream.fromXML(xml);
             for (MovieSort.SortData sort : data.classes.sortList) {
                 if (sort.filters == null) {
@@ -941,8 +967,7 @@ public class SourceViewModel extends ViewModel {
             }
         }
     }
-
-
+    
     private AbsXml checkPush(AbsXml data) {
         if (data.movie != null && data.movie.videoList != null && data.movie.videoList.size() > 0) {
             Movie.Video video = data.movie.videoList.get(0);
@@ -1077,7 +1102,7 @@ public class SourceViewModel extends ViewModel {
         if (data.movie != null && data.movie.videoList != null && data.movie.videoList.size() == 1) {
             Movie.Video video = data.movie.videoList.get(0);
             if (video != null && video.urlBean != null && video.urlBean.infoList != null) {
-            	boolean hasThunder=false;
+                boolean hasThunder=false;
                 thunderLoop:
                 for (int idx=0;idx<video.urlBean.infoList.size();idx++) {
                     Movie.Video.UrlBean.UrlInfo urlInfo = video.urlBean.infoList.get(idx);
@@ -1100,7 +1125,7 @@ public class SourceViewModel extends ViewModel {
                                 detailResult.postValue(data);
                             }
                         }
-                        
+
                         @Override
                         public void list(Map<Integer, String> urlMap) {
                             for (int key : urlMap.keySet()) {
@@ -1117,17 +1142,18 @@ public class SourceViewModel extends ViewModel {
                                                 infoBeanList.add(new Movie.Video.UrlBean.UrlInfo.InfoBean(ss[0], ss[1]));
                                             } else {
                                                 infoBeanList.add(new Movie.Video.UrlBean.UrlInfo.InfoBean((infoBeanList.size() + 1) + "", ss[0]));
-                                            }                            
+                                            }
                                         }
-                                    }                                    
+                                    }
                                 }
                                 video.urlBean.infoList.get(key).beanList = infoBeanList;
                             }
                             detailResult.postValue(data);
                         }
-                        
+
                         @Override
-                        public void play(String url) {                                                                                             
+                        public void play(String url) {
+
                         }
                     });
                 }
@@ -1144,7 +1170,6 @@ public class SourceViewModel extends ViewModel {
             xstream.autodetectAnnotations(true);
             xstream.processAnnotations(AbsXml.class);
             xstream.ignoreUnknownElements();
-            xstream.allowTypes(new Class[]{AbsXml.class});
             if (xml.contains("<year></year>")) {
                 xml = xml.replace("<year></year>", "<year>0</year>");
             }
@@ -1159,9 +1184,9 @@ public class SourceViewModel extends ViewModel {
                 EventBus.getDefault().post(new RefreshEvent(RefreshEvent.TYPE_QUICK_SEARCH_RESULT, data));
             } else if (result != null) {
                 if (result == detailResult) {
-                    data = checkPush(data);
+                	data = checkPush(data);
                     checkThunder(data,0);
-                } else {
+                }else {
                     result.postValue(data);
                 }
             }
@@ -1181,22 +1206,22 @@ public class SourceViewModel extends ViewModel {
     private AbsXml json(MutableLiveData<AbsXml> result, String json, String sourceKey) {
         try {
             // 测试数据
-            /*json = "{\n" +
-                    "\t\"list\": [{\n" +
-                    "\t\t\"vod_id\": \"137133\",\n" +
-                    "\t\t\"vod_name\": \"磁力测试\",\n" +
-                    "\t\t\"vod_pic\": \"https:/img9.doubanio.com/view/photo/s_ratio_poster/public/p2656327176.webp@User-Agent=com.douban.frodo\",\n" +
-                    "\t\t\"type_name\": \"剧情 / 爱情 / 古装\",\n" +
-                    "\t\t\"vod_year\": \"2022\",\n" +
-                    "\t\t\"vod_area\": \"中国大陆\",\n" +
-                    "\t\t\"vod_remarks\": \"40集全\",\n" +
-                    "\t\t\"vod_actor\": \"刘亦菲\",\n" +
-                    "\t\t\"vod_director\": \"杨阳\",\n" +
-                    "\t\t\"vod_content\": \"　　在钱塘开茶铺的赵盼儿（刘亦菲 饰）惊闻未婚夫、新科探花欧阳旭（徐海乔 饰）要另娶当朝高官之女，不甘命运的她誓要上京讨个公道。在途中她遇到了出自权门但生性正直的皇城司指挥顾千帆（陈晓 饰），并卷入江南一场大案，两人不打不相识从而结缘。赵盼儿凭借智慧解救了被骗婚而惨遭虐待的“江南第一琵琶高手”宋引章（林允 饰）与被苛刻家人逼得离家出走的豪爽厨娘孙三娘（柳岩 饰），三位姐妹从此结伴同行，终抵汴京，见识世间繁华。为了不被另攀高枝的欧阳旭从东京赶走，赵盼儿与宋引章、孙三娘一起历经艰辛，将小小茶坊一步步发展为汴京最大的酒楼，揭露了负心人的真面目，收获了各自的真挚感情和人生感悟，也为无数平凡女子推开了一扇平等救赎之门。\",\n" +
-                    "\t\t\"vod_play_from\": \"磁力测试\",\n" +
-                    "\t\t\"vod_play_url\": \"0$magnet:?xt=urn:btih:9e9358b946c427962533472efdd2efd9e9e38c67&dn=%e9%98%b3%e5%85%89%e7%94%b5%e5%bd%b1www.ygdy8.com.%e7%83%ad%e8%a1%80.2022.BD.1080P.%e9%9f%a9%e8%af%ad%e4%b8%ad%e8%8b%b1%e5%8f%8c%e5%ad%97.mkv&tr=udp%3a%2f%2ftracker.opentrackr.org%3a1337%2fannounce&tr=udp%3a%2f%2fexodus.desync.com%3a6969%2fannounce\"\n" +
-                    "\t}]\n" +
-                    "}";*/
+//            json = "{\n" +
+//                    "\t\"list\": [{\n" +
+//                    "\t\t\"vod_id\": \"137133\",\n" +
+//                    "\t\t\"vod_name\": \"磁力测试\",\n" +
+//                    "\t\t\"vod_pic\": \"https:/img9.doubanio.com/view/photo/s_ratio_poster/public/p2656327176.webp\",\n" +
+//                    "\t\t\"type_name\": \"剧情 / 爱情 / 古装\",\n" +
+//                    "\t\t\"vod_year\": \"2022\",\n" +
+//                    "\t\t\"vod_area\": \"中国大陆\",\n" +
+//                    "\t\t\"vod_remarks\": \"40集全\",\n" +
+//                    "\t\t\"vod_actor\": \"刘亦菲\",\n" +
+//                    "\t\t\"vod_director\": \"杨阳\",\n" +
+//                    "\t\t\"vod_content\": \"　　在钱塘开茶铺的赵盼儿（刘亦菲 饰）惊闻未婚夫、新科探花欧阳旭（徐海乔 饰）要另娶当朝高官之女，不甘命运的她誓要上京讨个公道。在途中她遇到了出自权门但生性正直的皇城司指挥顾千帆（陈晓 饰），并卷入江南一场大案，两人不打不相识从而结缘。赵盼儿凭借智慧解救了被骗婚而惨遭虐待的“江南第一琵琶高手”宋引章（林允 饰）与被苛刻家人逼得离家出走的豪爽厨娘孙三娘（柳岩 饰），三位姐妹从此结伴同行，终抵汴京，见识世间繁华。为了不被另攀高枝的欧阳旭从东京赶走，赵盼儿与宋引章、孙三娘一起历经艰辛，将小小茶坊一步步发展为汴京最大的酒楼，揭露了负心人的真面目，收获了各自的真挚感情和人生感悟，也为无数平凡女子推开了一扇平等救赎之门。\",\n" +
+//                    "\t\t\"vod_play_from\": \"磁力测试\",\n" +
+//                    "\t\t\"vod_play_url\": \"0$magnet:?xt=urn:btih:e398ca38fb9d64897ed19b4d16efeea11af4d03b\"\n" +
+//                    "\t}]\n" +
+//                    "}";
             AbsJson absJson = new Gson().fromJson(json, new TypeToken<AbsJson>() {
             }.getType());
             AbsXml data = absJson.toAbsXml();
@@ -1207,9 +1232,9 @@ public class SourceViewModel extends ViewModel {
                 EventBus.getDefault().post(new RefreshEvent(RefreshEvent.TYPE_QUICK_SEARCH_RESULT, data));
             } else if (result != null) {
                 if (result == detailResult) {
-                    data = checkPush(data);
+                	data = checkPush(data);
                     checkThunder(data,0);
-                } else {
+                }else {
                     result.postValue(data);
                 }
             }

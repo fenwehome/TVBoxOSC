@@ -213,6 +213,10 @@
     public static ** valueOf(java.lang.String);
 }
 
+# Cronet支持http3
+-keep class com.google.net.cronet.**{*;}
+-keep class org.chromium.net.**{*;}
+
 # Pyramid
 -keep public class com.undcover.freedom.pyramid.** { *; }
 -dontwarn com.undcover.freedom.pyramid.**

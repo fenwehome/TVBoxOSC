@@ -2,7 +2,9 @@ package com.github.tvbox.osc.ui.dialog;
 
 import android.app.Activity;
 import android.content.Context;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
@@ -130,13 +132,33 @@ public class ApiDialog extends BaseDialog {
                 }
             }
         });
+        inputApi.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
+                if (actionId == EditorInfo.IME_ACTION_DONE || actionId == EditorInfo.IME_ACTION_SEARCH || (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER)) {
+                    String newApi = inputApi.getText().toString().trim();
+                    if (!newApi.isEmpty()) {
+                        ArrayList<String> history = Hawk.get(HawkConfig.API_HISTORY, new ArrayList<String>());
+                        if (!history.contains(newApi))
+                            history.add(0, newApi);
+                        if (history.size() > 30)
+                            history.remove(30);
+                        Hawk.put(HawkConfig.API_HISTORY, history);
+                        listener.onchange(newApi);
+                        dismiss();
+                    }
+                    return true;
+                }
+                return false;
+            }
+        });
         refreshQRCode();
     }
 
     private void refreshQRCode() {
         String address = ControlManager.get().getAddress(false);
         tvAddress.setText(String.format("手机/电脑扫描上方二维码或者直接浏览器访问地址\n%s", address));
-        ivQRCode.setImageBitmap(QRCodeGen.generateBitmap(address, AutoSizeUtils.mm2px(getContext(), 300), AutoSizeUtils.mm2px(getContext(), 300)));
+        ivQRCode.setImageBitmap(QRCodeGen.generateBitmap(address+"api.html", AutoSizeUtils.mm2px(getContext(), 300), AutoSizeUtils.mm2px(getContext(), 300)));
     }
 
     public void setOnListener(OnListener listener) {

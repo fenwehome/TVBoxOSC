@@ -13,6 +13,7 @@ import com.github.tvbox.osc.event.RefreshEvent;
 import com.github.tvbox.osc.event.ServerEvent;
 import com.github.tvbox.osc.util.FileUtils;
 import com.github.tvbox.osc.util.OkGoHelper;
+import com.github.tvbox.osc.util.Proxy;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
@@ -58,6 +59,7 @@ public class RemoteServer extends NanoHTTPD {
     public static int serverPort = 9978;
     private boolean isStarted = false;
     private DataReceiver mDataReceiver;
+    public static String m3u8Content;
     private ArrayList<RequestProcess> getRequestList = new ArrayList<>();
     private ArrayList<RequestProcess> postRequestList = new ArrayList<>();
 
@@ -122,6 +124,39 @@ public class RemoteServer extends NanoHTTPD {
                                     mime,
                                     stream
                             );
+                            if(rs.length>=4){
+                                HashMap<String, String> mapHeader = (HashMap<String, String>) rs[3];
+                                if(!mapHeader.isEmpty()){
+                                    for (String key : mapHeader.keySet()) {
+                                        response.addHeader(key, mapHeader.get(key));
+                                    }
+                                }
+                            }
+                            return response;
+                        } catch (Throwable th) {
+                            return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.INTERNAL_ERROR, NanoHTTPD.MIME_PLAINTEXT, "500");
+                        }
+                    }
+                    if (params.containsKey("go")) {
+                        Object[] rs = Proxy.proxy(params);
+                        try {
+                            assert rs != null;
+                            int code = (int) rs[0];
+                            String mime = (String) rs[1];
+                            InputStream stream = rs[2] != null ? (InputStream) rs[2] : null;
+                            Response response = NanoHTTPD.newChunkedResponse(
+                                    NanoHTTPD.Response.Status.lookup(code),
+                                    mime,
+                                    stream
+                            );
+                            if(rs.length>=4){
+                                HashMap<String, String> mapHeader = (HashMap<String, String>) rs[3];
+                                if(!mapHeader.isEmpty()){
+                                    for (String key : mapHeader.keySet()) {
+                                        response.addHeader(key, mapHeader.get(key));
+                                    }
+                                }
+                            }
                             return response;
                         } catch (Throwable th) {
                             return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.INTERNAL_ERROR, NanoHTTPD.MIME_PLAINTEXT, "500");
@@ -167,7 +202,11 @@ public class RemoteServer extends NanoHTTPD {
                     }
                     EventBus.getDefault().post(new RefreshEvent(RefreshEvent.TYPE_PUSH_URL, url));
                     return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, NanoHTTPD.MIME_PLAINTEXT, "ok");    
-                }  else if (fileName.startsWith("/dash/")) {
+                }  else if (fileName.startsWith("/proxyM3u8")) {
+//                    com.github.tvbox.osc.util.LOG.i("echo-m3u8:"+m3u8Content);
+                    return NanoHTTPD.newFixedLengthResponse(NanoHTTPD.Response.Status.OK, NanoHTTPD.MIME_PLAINTEXT, m3u8Content);
+                }
+                 else if (fileName.startsWith("/dash/")) {
                     String dashData = App.getInstance().getDashData();
                     try {
                         String data = new String(Base64.decode(dashData, Base64.DEFAULT | Base64.NO_WRAP), "UTF-8");
